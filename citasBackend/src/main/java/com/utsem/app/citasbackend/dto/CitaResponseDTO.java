@@ -6,17 +6,25 @@ import java.time.LocalTime;
 public class CitaResponseDTO {
 
     private String mensaje;
+    private String telefono;
+    private String estatus;
     private String nombrePaciente;
-    private LocalTime horaIncio;
+    private LocalTime horaInicio;
+    private LocalTime horaFin;
     private LocalDate fechaCita;
     private String nombreServicio;
+    private Long servicioId;
 
-    public CitaResponseDTO(String mensaje, String nombrePaciente, LocalDate fechaCita, LocalTime horaIncio, String nombreServicio) {
+    public CitaResponseDTO(String mensaje, String telefono, String estatus, String nombrePaciente, LocalDate fechaCita, LocalTime horaInicio, LocalTime horaFin, String nombreServicio, Long servicioId) {
         this.mensaje = mensaje;
+        this.telefono = telefono;
+        this.estatus = estatus;
         this.nombrePaciente = nombrePaciente;
         this.fechaCita = fechaCita;
-        this.horaIncio = horaIncio;
+        this.horaInicio = horaInicio;
+        this.horaFin = horaFin;
         this.nombreServicio = nombreServicio;
+        this.servicioId = servicioId;
     }
 
     public String getMensaje() {
@@ -27,6 +35,14 @@ public class CitaResponseDTO {
         this.mensaje = mensaje;
     }
 
+    public String getTelefono() { return telefono; }
+
+    public void setTelefono(String telefono) { this.telefono = telefono; }
+
+    public String getEstatus() { return estatus; }
+
+    public void setEstatus(String estatus) { this.estatus = estatus; }
+
     public String getNombrePaciente() {
         return nombrePaciente;
     }
@@ -35,13 +51,17 @@ public class CitaResponseDTO {
         this.nombrePaciente = nombrePaciente;
     }
 
-    public LocalTime getHoraIncio() {
-        return horaIncio;
+    public LocalTime getHoraInicio() {
+        return horaInicio;
     }
 
-    public void setHoraIncio(LocalTime horaIncio) {
-        this.horaIncio = horaIncio;
+    public void setHoraInicio(LocalTime horaInicio) {
+        this.horaInicio = horaInicio;
     }
+
+    public LocalTime getHoraFin() { return horaFin; }
+
+    public void setHoraFin(LocalTime horaFin) { this.horaFin = horaFin; }
 
     public LocalDate getFechaCita() {
         return fechaCita;
@@ -57,5 +77,13 @@ public class CitaResponseDTO {
 
     public void setNombreServicio(String nombreServicio) {
         this.nombreServicio = nombreServicio;
+    }
+
+    public Long getServicioId() {
+        return servicioId;
+    }
+
+    public void setServicioId(Long servicioId) {
+        this.servicioId = servicioId;
     }
 }

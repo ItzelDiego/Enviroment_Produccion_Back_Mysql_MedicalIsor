@@ -9,10 +9,7 @@ import com.utsem.app.citasbackend.repository.CitaRepository;
 import com.utsem.app.citasbackend.repository.ServicioRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -41,10 +38,27 @@ public class CitaService {
         this.whatsAppService = whatsAppService;
     }
 
-    public List<Cita> findCita(CitaDTO citaDTO) {
+    public List<CitaResponseDTO> findCita(CitaDTO citaDTO) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        CriteriaQuery<Cita> query = cb.createQuery(Cita.class);
+        CriteriaQuery<CitaResponseDTO> query = cb.createQuery(CitaResponseDTO.class);
         Root<Cita> root = query.from(Cita.class);
+
+        // JOIN con Servicio
+        Join<Cita, Servicio> servicioJoin = root.join("servicio", JoinType.LEFT);
+
+        // Proyección al DTO - el orden debe coincidir con el constructor
+        query.select(cb.construct(
+                CitaResponseDTO.class,
+                cb.literal("Búsqueda exitosa"),
+                root.get("telefono"),
+                root.get("estatus"),
+                root.get("nombrePaciente"),
+                root.get("fechaCita"),
+                root.get("horaInicio"),
+                root.get("horaFin"),
+                servicioJoin.get("nombreServicio"),
+                servicioJoin.get("servicioId")
+        ));
 
         Predicate predicate = cb.conjunction();
 
@@ -61,31 +75,33 @@ public class CitaService {
         }
 
         if (citaDTO.getHoraInicio() != null) {
-            predicate = cb.and(predicate, cb.equal(root.get("horaInicio"),citaDTO.getHoraInicio()));
+            predicate = cb.and(predicate, cb.equal(root.get("horaInicio"), citaDTO.getHoraInicio()));
         }
 
-        if (citaDTO.getFechaCita() != null) {
+        // Filtro por servicioId
+        if (citaDTO.getServicioId() != null) {
+            predicate = cb.and(predicate, cb.equal(servicioJoin.get("id"), citaDTO.getServicioId()));
+        }
 
+        // Manejo de fechas
+        if (citaDTO.getFechaInicio() != null && citaDTO.getFechaFin() != null) {
+            predicate = cb.and(predicate,
+                    cb.between(root.get("fechaCita"), citaDTO.getFechaInicio(), citaDTO.getFechaFin())
+            );
+        } else if (citaDTO.getFechaCita() != null) {
             if (citaDTO.getSoloMes() != null && citaDTO.getSoloMes()) {
-
                 predicate = cb.and(predicate, cb.equal(
                         cb.function("MONTH", Integer.class, root.get("fechaCita")),
                         citaDTO.getFechaCita().getMonthValue()
                 ));
-
             } else if (citaDTO.getSoloDia() != null && citaDTO.getSoloDia()) {
-
                 predicate = cb.and(predicate, cb.equal(
                         cb.function("DAY", Integer.class, root.get("fechaCita")),
                         citaDTO.getFechaCita().getDayOfMonth()
                 ));
-
             } else {
-
-                predicate = cb.and(predicate, cb.equal(root.get("fechaCita"),citaDTO.getFechaCita()));
-
+                predicate = cb.and(predicate, cb.equal(root.get("fechaCita"), citaDTO.getFechaCita()));
             }
-
         }
 
         query.where(predicate);
@@ -93,7 +109,6 @@ public class CitaService {
 
         return entityManager.createQuery(query).getResultList();
     }
-
     public CitaResponseDTO crearCita(CitaDTO citaDTO) {
         validarFechaCita(citaDTO.getFechaCita());
         validarSolapamiento(citaDTO, null);
@@ -103,7 +118,7 @@ public class CitaService {
 
         // Enviar confirmación por WhatsApp
         try {
-            whatsAppService.enviarConfirmacionCita(citaGuardada);
+            whatsAppService.enviarConfirmacionCita(citaGuardada, "confirmacion");
         } catch (Exception e) {
             // Log pero no fallar - la cita ya está guardada
             System.err.println("Advertencia: Cita creada pero WhatsApp falló: " + e.getMessage());
@@ -130,7 +145,7 @@ public class CitaService {
 
         // Enviar notificación de actualización
         try {
-            whatsAppService.enviarConfirmacionCita(citaActualizada);
+            whatsAppService.enviarConfirmacionCita(citaActualizada, "actualizacion");
         } catch (Exception e) {
             System.err.println("Advertencia: Cita actualizada pero WhatsApp falló: " + e.getMessage());
         }
@@ -195,10 +210,14 @@ public class CitaService {
     private CitaResponseDTO construirRespuesta(Cita cita, String mensaje) {
         return new CitaResponseDTO(
                 mensaje,
+                cita.getTelefono(),
+                cita.getEstatus(),
                 cita.getNombrePaciente(),
                 cita.getFechaCita(),
                 cita.getHoraInicio(),
-                cita.getServicio().getNombreServicio()
+                cita.getHoraFin(),
+                cita.getServicio().getNombreServicio(),
+                cita.getServicio().getServicioId()
         );
     }
 

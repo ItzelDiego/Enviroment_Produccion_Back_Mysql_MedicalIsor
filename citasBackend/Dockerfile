@@ -4,6 +4,6 @@ ARG JAR_FILE=target/citasBackend-0.0.1-SNAPSHOT.jar
 
 COPY ${JAR_FILE} citasBackend.jar
 
-EXPOSE 8080
+EXPOSE 8010
 
 ENTRYPOINT ["java", "-jar", "citasBackend.jar"]
